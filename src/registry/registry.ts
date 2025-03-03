@@ -38,7 +38,7 @@ export async function launchRegistry() {
         }
 
         res.json({success: true});
-        // res.send("success");
+        res.send("success");
     });
 
     _registry.get("/getNodeRegistry", (req: Request, res: Response) => {
@@ -46,6 +46,10 @@ export async function launchRegistry() {
         res.json({nodes});
     });
 
+    _registry.post("/resetRegistry", (req: Request, res: Response) => {
+        nodes.length = 0; // Vide le tableau
+        res.json({ success: true });
+    });
 
     const server = _registry.listen(REGISTRY_PORT, () => {
         console.log(`registry is listening on port ${REGISTRY_PORT}`);

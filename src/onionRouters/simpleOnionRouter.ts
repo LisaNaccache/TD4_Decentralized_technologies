@@ -83,6 +83,13 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({success: true});
     });
 
+    onionRouter.get("/getPrivateKey", (req, res) => {
+        if (!privateKeys[nodeId]) {
+            res.status(404).json({error: "Private key not found"});
+        }
+        res.json({result: privateKeys[nodeId]});
+    });
+
     async function registerNode(nodeId: number, pubKeyStr: string) {
         try {
             const response = await fetch(`http://localhost:${REGISTRY_PORT}/registerNode`, {
