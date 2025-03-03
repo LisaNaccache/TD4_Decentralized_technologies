@@ -1,7 +1,7 @@
 import bodyParser from "body-parser";
 import express from "express";
-import {BASE_ONION_ROUTER_PORT, REGISTRY_PORT} from "../config";
-import {exportPrvKey, exportPubKey, generateRsaKeyPair} from "@/src/crypto";
+import {BASE_ONION_ROUTER_PORT, BASE_USER_PORT} from "../config";
+import {generateRsaKeyPair, exportPubKey, exportPrvKey} from "../crypto";
 
 const privateKeys: { [key: number]: string } = {};
 
@@ -14,16 +14,18 @@ export async function simpleOnionRouter(nodeId: number) {
     let lastReceivedDecryptedMessage: string | null = null;
     let lastMessageDestination: number | null = null;
 
-    /*
-      // Génération des clés RSA pour chaque nœud
-      console.log(`🔑 Generating RSA key pair for node ${nodeId}...`);
-      const { publicKey, privateKey } = await generateRsaKeyPair();
-      const pubKeyStr = await exportPubKey(publicKey);
-      const prvKeyStr = await exportPrvKey(privateKey);
-      privateKeys[nodeId] = prvKeyStr || ""; // Stocker la clé privée
-    */
 
-    // TODO implement the status route
+    // Génération des clés RSA pour chaque nœud
+    console.log(`🔑 Generating RSA key pair for node ${nodeId}...`);
+    const {publicKey, privateKey} = await generateRsaKeyPair();
+    const pubKeyStr = await exportPubKey(publicKey);
+    const prvKeyStr = await exportPrvKey(privateKey);
+    privateKeys[nodeId] = prvKeyStr || ""; // Stocker la clé privée
+
+    onionRouter.get("/getPrivateKey", (req, res) => {
+        res.json({result: privateKeys[nodeId]});
+    });
+
     onionRouter.get("/status", (req, res) => {
         res.send("live");
     });
@@ -43,33 +45,41 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({result: lastMessageDestination});
     });
 
-    async function registerNode(nodeId: number, pubKeyStr: string) {
-        let success = false;
-        for (let i = 0; i < 5; i++) { // Essaye 5 fois au cas où le registre n'est pas prêt
-            try {
-                const response = await fetch(`http://localhost:${REGISTRY_PORT}/registerNode`, {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({nodeId, pubKey: pubKeyStr}),
-                });
+    onionRouter.post("/message", async (req, res) => {
+        const {message, circuit, index} = req.body;
 
-                if (response.ok) {
-                    console.log(`✅ Node ${nodeId} successfully registered`);
-                    success = true;
-                    break;
-                } else {
-                    console.error(`❌ Node ${nodeId} registration failed. Retrying...`);
-                }
-            } catch (error) {
-                console.error(`❌ Error registering node ${nodeId}:`, error);
-            }
-            await new Promise((res) => setTimeout(res, 1000)); // Attends 1 seconde avant de réessayer
+        if (!message || !circuit || index === undefined) {
+            res.status(400).json({error: "Invalid message format"});
         }
 
-        if (!success) {
-            console.error(`❌ Node ${nodeId} could not register after multiple attempts.`);
+        console.log(`📩 Node ${nodeId} received message: ${message}`);
+
+        lastReceivedEncryptedMessage = message;
+
+        if (index < circuit.length - 1) {
+            // Transférer au prochain nœud
+            const nextNode = circuit[index + 1];
+            console.log(`➡️ Forwarding to Node ${nextNode}`);
+
+            await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + nextNode}/message`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({message, circuit, index: index + 1}),
+            });
+        } else {
+            // Dernière étape, envoi au destinataire
+            const destinationUserPort = BASE_USER_PORT + circuit[index];
+            console.log(`🏁 Final destination: User ${circuit[index]}`);
+
+            await fetch(`http://localhost:${destinationUserPort}/message`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({message}),
+            });
         }
-    }
+
+        res.json({success: true});
+    });
 
     const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
         console.log(

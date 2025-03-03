@@ -1,6 +1,6 @@
 import bodyParser from "body-parser";
 import express from "express";
-import {BASE_USER_PORT} from "../config";
+import {BASE_ONION_ROUTER_PORT, BASE_USER_PORT} from "../config";
 
 export async function user(userId: number) {
     const _user = express();
@@ -33,6 +33,32 @@ export async function user(userId: number) {
 
         lastReceivedMessage = message;
         res.send("success");
+    });
+
+    _user.post("/sendMessage", async (req, res) => {
+        const {message, destinationUserId} = req.body;
+
+        if (!message || destinationUserId === undefined) {
+            res.status(400).json({error: "Missing message or destinationUserId"});
+        }
+
+        console.log(`📩 User ${userId} sending message: ${message} to User ${destinationUserId}`);
+
+        // Simulation d'un circuit (on utilisera 3 nœuds aléatoires)
+        const circuit = [0, 1, 2].map(() => Math.floor(Math.random() * 10)); // 3 nœuds aléatoires
+        console.log(`🔀 Circuit chosen: ${circuit}`);
+
+        // Stocker le circuit pour les tests
+        lastSentMessage = message;
+
+        // Envoyer le message au premier nœud
+        await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0]}/message`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({message, circuit, index: 0}),
+        });
+
+        res.json({success: true});
     });
 
 
