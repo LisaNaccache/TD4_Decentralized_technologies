@@ -26,7 +26,7 @@ type GenerateRsaKeyPair = {
 };
 
 export async function generateRsaKeyPair(): Promise<GenerateRsaKeyPair> {
-    console.log("🔑 Generating RSA key pair...");
+    console.log("Generating RSA key pair...");
     const keyPair = await webcrypto.subtle.generateKey(
         {
             name: "RSA-OAEP",
@@ -38,7 +38,7 @@ export async function generateRsaKeyPair(): Promise<GenerateRsaKeyPair> {
         ["encrypt", "decrypt"]
     );
 
-    console.log("✅ RSA keys generated.");
+    console.log("RSA keys generated.");
     return {publicKey: keyPair.publicKey, privateKey: keyPair.privateKey};
 }
 

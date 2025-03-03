@@ -15,7 +15,7 @@ export async function simpleOnionRouter(nodeId: number) {
     let lastMessageDestination: number | null = null;
 
     // 🔑 Génération des clés RSA pour chaque nœud
-    console.log(`🔑 Generating RSA key pair for node ${nodeId}...`);
+    console.log(`Generating RSA key pair for node ${nodeId}...`);
     const {publicKey, privateKey} = await generateRsaKeyPair();
     const pubKeyStr = await exportPubKey(publicKey);
     const prvKeyStr = await exportPrvKey(privateKey);
@@ -54,14 +54,14 @@ export async function simpleOnionRouter(nodeId: number) {
             res.status(400).json({error: "Invalid message format"});
         }
 
-        console.log(`📩 Node ${nodeId} received message: ${message}`);
+        console.log(`Node ${nodeId} received message: ${message}`);
 
         lastReceivedEncryptedMessage = message;
 
         if (index < circuit.length - 1) {
             // Transférer au prochain nœud
             const nextNode = circuit[index + 1];
-            console.log(`➡️ Forwarding to Node ${nextNode}`);
+            console.log(`Forwarding to Node ${nextNode}`);
 
             await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + nextNode}/message`, {
                 method: "POST",
@@ -71,7 +71,7 @@ export async function simpleOnionRouter(nodeId: number) {
         } else {
             // Dernière étape, envoi au destinataire
             const destinationUserPort = BASE_USER_PORT + circuit[index];
-            console.log(`🏁 Final destination: User ${circuit[index]}`);
+            console.log(`Final destination: User ${circuit[index]}`);
 
             await fetch(`http://localhost:${destinationUserPort}/message`, {
                 method: "POST",
@@ -99,12 +99,12 @@ export async function simpleOnionRouter(nodeId: number) {
             });
 
             if (response.ok) {
-                console.log(`✅ Node ${nodeId} registered successfully`);
+                console.log(`Node ${nodeId} registered successfully`);
             } else {
-                console.error(`❌ Error registering node ${nodeId}`);
+                console.error(`Error registering node ${nodeId}`);
             }
         } catch (error) {
-            console.error(`❌ Failed to register node ${nodeId}:`, error);
+            console.error(`Failed to register node ${nodeId}:`, error);
         }
     }
 

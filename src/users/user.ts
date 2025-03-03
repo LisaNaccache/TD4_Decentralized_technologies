@@ -46,7 +46,6 @@ export async function user(userId: number) {
 
             console.log(`📩 User ${userId} sending message: "${message}" to User ${destinationUserId}`);
 
-            // 🔹 Correction ici : forcer le typage du JSON récupéré
             const nodesResponse = await fetch(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
             const nodesData = (await nodesResponse.json()) as { nodes: { nodeId: number; pubKey: string }[] };
             const nodes = nodesData.nodes || [];
@@ -61,7 +60,7 @@ export async function user(userId: number) {
                 .sort(() => 0.5 - Math.random())
                 .slice(0, 3);
 
-            console.log(`🔀 Circuit choisi: ${circuit}`);
+            console.log(`Circuit choisi: ${circuit}`);
 
             // Stocker le message envoyé
             lastSentMessage = message;
@@ -70,7 +69,7 @@ export async function user(userId: number) {
             const firstNode = circuit[0];
             const payload = { message, circuit, index: 0 };
 
-            console.log(`🚀 Envoi au premier nœud: ${firstNode}`);
+            console.log(`Envoi au premier nœud: ${firstNode}`);
 
             const response = await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + firstNode}/message`, {
                 method: "POST",
@@ -79,11 +78,11 @@ export async function user(userId: number) {
             });
 
             const data = await response.json();
-            console.log(`📩 Réponse du nœud ${firstNode}:`, data);
+            console.log(`Reponse du nœud ${firstNode}:`, data);
 
             return res.json({ success: true, circuit });
         } catch (error) {
-            console.error("❌ Erreur dans /sendMessage:", error);
+            console.error("Erreur dans /sendMessage:", error);
             return res.status(500).json({ error: "Internal server error" });
         }
     });

@@ -34,7 +34,7 @@ export async function launchRegistry() {
 
         if (!nodes.find(n => n.nodeId === nodeId)) {
             nodes.push({nodeId, pubKey});
-            console.log(`✅ Node ${nodeId} registered`);
+            console.log(`Node ${nodeId} registered`);
         }
 
         res.json({success: true});
