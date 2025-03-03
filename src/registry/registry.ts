@@ -38,6 +38,7 @@ export async function launchRegistry() {
         }
 
         res.json({success: true});
+        // res.send("success");
     });
 
     _registry.get("/getNodeRegistry", (req: Request, res: Response) => {

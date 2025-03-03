@@ -1,6 +1,6 @@
 import bodyParser from "body-parser";
 import express from "express";
-import {BASE_ONION_ROUTER_PORT, BASE_USER_PORT} from "../config";
+import {BASE_ONION_ROUTER_PORT, BASE_USER_PORT, REGISTRY_PORT} from "../config";
 import {generateRsaKeyPair, exportPubKey, exportPrvKey} from "../crypto";
 
 const privateKeys: { [key: number]: string } = {};
@@ -14,13 +14,15 @@ export async function simpleOnionRouter(nodeId: number) {
     let lastReceivedDecryptedMessage: string | null = null;
     let lastMessageDestination: number | null = null;
 
-
-    // Génération des clés RSA pour chaque nœud
+    // 🔑 Génération des clés RSA pour chaque nœud
     console.log(`🔑 Generating RSA key pair for node ${nodeId}...`);
     const {publicKey, privateKey} = await generateRsaKeyPair();
     const pubKeyStr = await exportPubKey(publicKey);
     const prvKeyStr = await exportPrvKey(privateKey);
     privateKeys[nodeId] = prvKeyStr || ""; // Stocker la clé privée
+
+    // ✅ Enregistrer le nœud sur le registry
+    await registerNode(nodeId, pubKeyStr);
 
     onionRouter.get("/getPrivateKey", (req, res) => {
         res.json({result: privateKeys[nodeId]});
@@ -81,11 +83,27 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({success: true});
     });
 
+    async function registerNode(nodeId: number, pubKeyStr: string) {
+        try {
+            const response = await fetch(`http://localhost:${REGISTRY_PORT}/registerNode`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({nodeId, pubKey: pubKeyStr}),
+            });
+
+            if (response.ok) {
+                console.log(`✅ Node ${nodeId} registered successfully`);
+            } else {
+                console.error(`❌ Error registering node ${nodeId}`);
+            }
+        } catch (error) {
+            console.error(`❌ Failed to register node ${nodeId}:`, error);
+        }
+    }
+
     const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
         console.log(
-            `Onion router ${nodeId} is listening on port ${
-                BASE_ONION_ROUTER_PORT + nodeId
-            }`
+            `Onion router ${nodeId} is listening on port ${BASE_ONION_ROUTER_PORT + nodeId}`
         );
     });
 
