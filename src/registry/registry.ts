@@ -13,6 +13,8 @@ export type GetNodeRegistryBody = {
   nodes: Node[];
 };
 
+const nodes: Node[] = []; // Stocke les nœuds enregistrés
+
 export async function launchRegistry() {
   const _registry = express();
   _registry.use(express.json());
@@ -20,6 +22,12 @@ export async function launchRegistry() {
 
   // TODO implement the status route
   _registry.get("/status", (req, res) => {res.send("live");});
+
+  _registry.get("/getNodeRegistry", (req: Request, res: Response) => {
+    console.log("Current registered nodes:", nodes); // Debug log
+    res.json({ nodes });
+  });
+
 
   const server = _registry.listen(REGISTRY_PORT, () => {
     console.log(`registry is listening on port ${REGISTRY_PORT}`);
